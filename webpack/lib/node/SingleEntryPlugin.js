@@ -11,8 +11,7 @@ class SingleEntryPlugin {
         const { context, entry, name } = this;
         //从入口开始编译
         console.log("make");
-        
-         compilation.addEntry(context, entry, name, callback);
+        compilation.addEntry(context, entry, name, callback);
       }
     );
   }

@@ -4,7 +4,8 @@ const {
   AsyncParallelHook,
   SyncHook,
 } = require("tapable");
-const Compilation = require('./node/Compilation');
+const Compilation = require("./node/Compilation");
+const Stats = require("./node/Stats");
 
 class Compiler {
   constructor(context) {
@@ -32,12 +33,7 @@ class Compiler {
 
     const onCompiled = (err, compilation) => {
       console.log("onCompiled");
-      finalCallback(err, {
-        entries: [],
-        chunks: [],
-        module: [],
-        assets: [],
-      });
+      finalCallback(err, new Stats(compilation));
     };
 
     this.hooks.beforeRun.callAsync(this, (err) => {
@@ -54,7 +50,7 @@ class Compiler {
       const compilation = this.newCompilationParams(params);
       this.hooks.make.callAsync(compilation, (err) => {
         console.log("make完成");
-        onCompiled();
+        onCompiled(null,compilation);
       });
     });
   }

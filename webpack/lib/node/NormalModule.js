@@ -17,13 +17,13 @@ class NormalModule {
   }
 
   doBuild(compilation, callback) {
-    this.getSource(compilation,(err,source)=>{
+    this.getSource(compilation, (err, source) => {
       this._source = source;
       callback();
     });
   }
 
-  getSource(compilation) {
+  getSource(compilation, callback) {
     compilation.inputFileSystem.readFile(this.resource, "utf8", callback);
   }
 }

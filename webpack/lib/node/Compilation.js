@@ -24,17 +24,17 @@ class Compilation {
 
   //开始编译一个新入口
   addEntry(context, entry, name, finalCallback) {
-    this._addModuleChain(context, rawRequest, name, (err, module) => {
+    this._addModuleChain(context, entry, name, (err, module) => {
       finalCallback(err, module);
     });
   }
 
-  _addModuleChain(context, entry, name, callback) {
+  _addModuleChain(context, rawRequest, name, callback) {
     const entryModule = normalModuleFactory.create({
       name, //main
       context, //cwd
       rawRequest, //./src/index.js
-      resource: path.posix.join(context, entry), //入口绝对路径
+      resource: path.posix.join(context, rawRequest), //入口绝对路径
       parser,
     });
     this.entries.push(entryModule);
