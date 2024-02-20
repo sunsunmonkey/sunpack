@@ -49,8 +49,11 @@ class Compiler {
       this.hooks.compile.call(params);
       const compilation = this.newCompilationParams(params);
       this.hooks.make.callAsync(compilation, (err) => {
-        console.log("make完成");
-        onCompiled(null,compilation);
+        compilation.seal((err) => {
+          this.hooks.afterCompile.callAsync(compilation, (err) => {
+            onCompiled(null, compilation);
+          });
+        });
       });
     });
   }
