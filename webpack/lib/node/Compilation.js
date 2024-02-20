@@ -2,6 +2,8 @@ const path = require("path");
 
 const { SyncHook } = require("tapable");
 const async = require("neo-async");
+const ejs = require("ejs");
+const fs = require("fs");
 
 const NormalModuleFactory = require("./NormalModuleFactory");
 const Chunk = require("./Chunk");
@@ -9,6 +11,11 @@ const Parser = require("../../Parser");
 
 const parser = new Parser();
 const normalModuleFactory = new NormalModuleFactory();
+const mainTemplate = fs.readFileSync(
+  path.join(__dirname, "templates", "main.ejs"),
+  "utf8"
+);
+const mainRender = ejs.compile(mainTemplate);
 
 class Compilation {
   constructor(compiler) {
@@ -19,7 +26,10 @@ class Compilation {
     this.outputFileSystem = compiler.outputFileSystem;
     this.entries = []; //入口模块数组，放着所有的入口模块
     this.modules = []; //模块数组，放着所有模块
-    this.chunks = [];
+    this.chunks = []; //所有代码块
+    this.files = []; //本次编译所有产出的文件名
+    this.assets = {}; //生成资源 key为文件名
+
     this.hooks = {
       succeedModule: new SyncHook(["module"]),
       seal: new SyncHook(),
@@ -112,7 +122,26 @@ class Compilation {
     }
 
     this.hooks.afterChunks.call(this.chunks);
+    this.createChunkAssets();
     callback();
+  }
+  createChunkAssets() {
+    for (let i = 0; i < this.chunks.length; i++) {
+      const chunk = this.chunks[i];
+      const file = chunk.name + ".js";
+      chunk.files.push(file);
+
+      let source = mainRender({
+        entryModuleId: chunk.entryModule.moduleId,
+        modules: chunk.modules,
+      });
+      this.emitAssets(file, source);
+    }
+  }
+
+  emitAssets(file, source) {
+    this.assets[file] = source;
+    this.files.push(file);
   }
 }
 

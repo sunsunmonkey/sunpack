@@ -7,6 +7,9 @@ const {
 const Compilation = require("./node/Compilation");
 const Stats = require("./node/Stats");
 
+const { mkdirp } = require("mkdirp");
+const path = require("path");
+
 class Compiler {
   constructor(context) {
     this.context = context;
@@ -14,26 +17,47 @@ class Compiler {
       entryOption: new SyncBailHook(["context", "entry"]),
       beforeRun: new AsyncSeriesHook(["compiler"]), //运行前
       run: new AsyncSeriesHook(["compiler"]), //运行
-      done: new AsyncSeriesHook(["stats"]), //编译完成后
       beforeCompile: new AsyncSeriesHook(["params"]), //编译前
       compile: new SyncHook(["params"]), //编译
       make: new AsyncParallelHook(["compilation"]), //make构建
       thisCompilation: new SyncHook(["compilation", "params"]), //开始一次新的编译
       compilation: new SyncHook(["compilation", "params"]), //创建完成一个新的compilation
       afterCompile: new AsyncSeriesHook(["compilation"]), //编译完成
+      emit: new AsyncSeriesHook(["compilation"]),
+      done: new AsyncSeriesHook(["stats"]), //编译完成后
     };
   }
 
-  run(callback) {
-    console.log("run");
-    //最终回调
-    const finalCallback = (err, stats) => {
-      callback(err, stats);
+  emitAssets(compilation, callback) {
+    const emitFiles = () => {
+      const assets = compilation.assets;
+      const outputPath = compilation.options.output.path;
+      for (let file in assets) {
+        const source = assets[file];
+        const targetPath = path.posix.join(outputPath, file);
+        this.outputFileSystem.writeFileSync(targetPath, source, "utf8");
+      }
+      callback();
     };
+    //触发emit
+    this.hooks.emit.callAsync(compilation, () => {
+      console.log(this.options.output.path);
+      mkdirp(this.options.output.path)
+        .then(emitFiles)
+        .catch((err) => console.log(err));
+    });
+    // finalCallback(err, new Stats(compilation));
+  }
 
+  run(callback) {
     const onCompiled = (err, compilation) => {
-      console.log("onCompiled");
-      finalCallback(err, new Stats(compilation));
+      this.emitAssets(compilation, (err) => {
+        const stats = new Stats(compilation);
+        //在触发done
+        this.hooks.done.callAsync(stats, (err) => {
+          callback(err, stats);
+        });
+      });
     };
 
     this.hooks.beforeRun.callAsync(this, (err) => {
