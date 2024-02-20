@@ -12,10 +12,16 @@ const Parser = require("../../Parser");
 const parser = new Parser();
 const normalModuleFactory = new NormalModuleFactory();
 const mainTemplate = fs.readFileSync(
-  path.join(__dirname, "templates", "main.ejs"),
+  path.join(__dirname, "templates", "asyncMain.ejs"),
   "utf8"
 );
+const chunkTemplate = fs.readFileSync(
+  path.join(__dirname, "templates", "chunk.ejs"),
+  "utf8"
+);
+
 const mainRender = ejs.compile(mainTemplate);
+const chunkRender = ejs.compile(chunkTemplate);
 
 class Compilation {
   constructor(compiler) {
@@ -40,24 +46,26 @@ class Compilation {
 
   //开始编译一个新入口
   addEntry(context, entry, name, finalCallback) {
-    this._addModuleChain(context, entry, name, (err, module) => {
+    this._addModuleChain(context, entry, name, false, (err, module) => {
       finalCallback(err, module);
     });
   }
 
-  _addModuleChain(context, rawRequest, name, callback) {
+  _addModuleChain(context, rawRequest, name, async, callback) {
     this.createModule(
       {
         name,
         context,
         rawRequest,
         resource: path.posix.join(context, rawRequest),
+        async,
         parser,
       },
       (entryModule) => this.entries.push(entryModule),
       callback
     );
   }
+
   createModule(data, addEntry, callback) {
     const module = normalModuleFactory.create(data);
 
@@ -130,11 +138,19 @@ class Compilation {
       const chunk = this.chunks[i];
       const file = chunk.name + ".js";
       chunk.files.push(file);
+      let source;
+      if (chunk.async) {
+        source = chunkRender({
+          chunkName: chunk.name,
+          modules: chunk.modules,
+        });
+      } else {
+        source = mainRender({
+          entryModuleId: chunk.entryModule.moduleId,
+          modules: chunk.modules,
+        });
+      }
 
-      let source = mainRender({
-        entryModuleId: chunk.entryModule.moduleId,
-        modules: chunk.modules,
-      });
       this.emitAssets(file, source);
     }
   }

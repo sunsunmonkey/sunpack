@@ -1,2 +1,8 @@
-let title = require("./title.js");
-console.log(title);
+import(/*webpackChunkName: 'title'*/"./title").then((res) => {
+  console.log(res);
+});
+
+import(/*webpackChunkName: 'sum'*/"./sum").then((res) => {
+    console.log(res);
+  });
+  
