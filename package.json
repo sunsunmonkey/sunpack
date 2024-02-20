@@ -12,5 +12,8 @@
   "devDependencies": {
     "webpack": "^5.90.2",
     "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "isarray": "^2.0.5"
   }
 }

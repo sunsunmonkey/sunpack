@@ -33,26 +33,34 @@ class NormalModule {
       //得到语法树
       this._ast = this.parser.parse(this._source);
       //遍历语法树
+
+      //依赖的绝对路径
+      let depResource;
+
       traverse(this._ast, {
         CallExpression: (nodePath) => {
           const node = nodePath.node;
           if (node.callee.name === "require") {
             node.callee.name = "__webpack_require__";
             const moduleName = node.arguments[0].value; //模块名
-            const extName =
-              moduleName.split(path.posix.sep).pop().indexOf(".") === -1
-                ? ".js"
-                : "";
 
-            const depResource = path.posix.join(
-              path.posix.dirname(this.resource),
-              moduleName + extName
-            );
-            //依赖的模块Id
-            const depModuleId = `./${path.posix.relative(
-              this.context,
-              depResource
-            )}`;
+            if (moduleName.startsWith(".")) {
+              const extName =
+                moduleName.split(path.posix.sep).pop().indexOf(".") === -1
+                  ? ".js"
+                  : "";
+
+              depResource = path.posix.join(
+                path.posix.dirname(this.resource),
+                moduleName + extName
+              );
+            } else {
+              depResource = require.resolve(
+                path.posix.join(this.context, "node_modules", moduleName)
+              );
+              depResource = depResource.replace(/\\/g, "/");
+            }
+            const depModuleId = `.${depResource.slice(this.context.length)}`;
             node.arguments = [types.stringLiteral(depModuleId)];
             this.dependencies.push({
               name: this.name,

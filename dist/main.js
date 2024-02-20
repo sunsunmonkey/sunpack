@@ -131,13 +131,24 @@
       
           "./src/index.js":
           (function (module, exports, __webpack_require__) {
-            __webpack_require__.e("title").then(__webpack_require__.bind(null, "./src/title.js", 7)).then(res => {
-  console.log(res);
-});
+            // import(/*webpackChunkName: 'title'*/"./title").then((res) => {
+//   console.log(res);
+// });
 
-__webpack_require__.e("sum").then(__webpack_require__.bind(null, "./src/sum.js", 7)).then(res => {
-  console.log(res);
-});
+// import(/*webpackChunkName: 'sum'*/"./sum").then((res) => {
+//     console.log(res);
+//   });
+let isarray = __webpack_require__("./node_modules/.pnpm/isarray@2.0.5/node_modules/isarray/index.js");
+console.log(isarray[(1, 2, 3)]);
+          }),
+      
+          "./node_modules/.pnpm/isarray@2.0.5/node_modules/isarray/index.js":
+          (function (module, exports, __webpack_require__) {
+            var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
+};
           }),
        
   });
