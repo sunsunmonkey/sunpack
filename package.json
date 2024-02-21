@@ -14,6 +14,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "isarray": "^2.0.5"
+    "isarray": "^2.0.5",
+    "less": "^4.2.0"
   }
 }

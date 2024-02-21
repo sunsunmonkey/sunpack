@@ -138,17 +138,17 @@
 // import(/*webpackChunkName: 'sum'*/"./sum").then((res) => {
 //     console.log(res);
 //   });
-let isarray = __webpack_require__("./node_modules/.pnpm/isarray@2.0.5/node_modules/isarray/index.js");
-console.log(isarray[(1, 2, 3)]);
+// let isarray = require("isarray");
+// console.log(isarray[(1, 2, 3)]);
+__webpack_require__("./src/index.less");
           }),
       
-          "./node_modules/.pnpm/isarray@2.0.5/node_modules/isarray/index.js":
+          "./src/index.less":
           (function (module, exports, __webpack_require__) {
-            var toString = {}.toString;
-
-module.exports = Array.isArray || function (arr) {
-  return toString.call(arr) == '[object Array]';
-};
+            
+let style = document.createElement('style');
+style.innerHTML = "body {\n  background-color: red;\n}\n";
+document.head.appendChild(style);
           }),
        
   });

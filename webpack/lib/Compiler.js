@@ -41,7 +41,6 @@ class Compiler {
     };
     //触发emit
     this.hooks.emit.callAsync(compilation, () => {
-      console.log(this.options.output.path);
       mkdirp(this.options.output.path)
         .then(emitFiles)
         .catch((err) => console.log(err));

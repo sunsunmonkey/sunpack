@@ -3,6 +3,8 @@ const types = require("babel-types");
 const generate = require("babel-generator").default;
 const traverse = require("babel-traverse").default;
 const async = require("neo-async");
+const { runLoaders } = require("./loader-runner");
+
 class NormalModule {
   constructor({
     name,
@@ -123,8 +125,30 @@ class NormalModule {
 
   doBuild(compilation, callback) {
     this.getSource(compilation, (err, source) => {
-      this._source = source;
-      callback();
+      //在这里读取硬盘，进行转换
+      let {
+        module: { rules },
+      } = compilation.options;
+      let loaders = [];
+      for (let i = 0; i < rules.length; i++) {
+        const rule = rules[i];
+        if (rule.test.test(this.resource)) {
+          loaders.push(...rule.use);
+        }
+      }
+      const resolveLoader = (loader) =>
+        require.resolve(path.posix.join(this.context, "loaders", loader));
+      loaders = loaders.map(resolveLoader);
+      runLoaders(
+        {
+          resource: this.resource,
+          loaders,
+        },
+        (err, { result }) => {
+          this._source = result.toString();
+          callback();
+        }
+      );
     });
   }
 
