@@ -59,7 +59,7 @@ function processResource(options, loaderContext, callback) {
   let resourcePath = loaderContext.resourcePath;
   //调用 fs.readFile方法读取资源内容
   options.readResource(resourcePath, function (err, buffer) {
-    if (err) return callback(error);
+    if (err) return callback(err);
     options.resourceBuffer = buffer; //resourceBuffer放的是资源的原始内容
     iterateNormalLoaders(options, loaderContext, [buffer], callback);
   });
@@ -236,6 +236,7 @@ exports.runLoaders = function (options, callback) {
     if (err) {
       return callback(err, {});
     }
+
     callback(null, {
       result,
       resourceBuffer: processOptions.resourceBuffer,

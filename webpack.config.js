@@ -1,7 +1,10 @@
 const path = require("path");
 
 module.exports = {
-  entry: "./src/index.js",
+  entry: {
+    page1: "./src/page1.js",
+    page2: "./src/page2.js",
+  },
   context: process.cwd(),
   devtool: false,
   mode: "development",

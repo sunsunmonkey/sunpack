@@ -139,16 +139,21 @@ class NormalModule {
       const resolveLoader = (loader) =>
         require.resolve(path.posix.join(this.context, "loaders", loader));
       loaders = loaders.map(resolveLoader);
-      runLoaders(
-        {
-          resource: this.resource,
-          loaders,
-        },
-        (err, { result }) => {
-          this._source = result.toString();
-          callback();
-        }
-      );
+      if (loaders.length) {
+        runLoaders(
+          {
+            resource: this.resource,
+            loaders,
+          },
+          (err, { result }) => {
+            this._source = result.toString();
+            callback();
+          }
+        );
+      } else {
+        this._source = source;
+        callback();
+      }
     });
   }
 

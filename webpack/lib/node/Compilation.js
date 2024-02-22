@@ -12,7 +12,7 @@ const Parser = require("../../Parser");
 const parser = new Parser();
 const normalModuleFactory = new NormalModuleFactory();
 const mainTemplate = fs.readFileSync(
-  path.join(__dirname, "templates", "asyncMain.ejs"),
+  path.join(__dirname, "templates", "deferMain.ejs"),
   "utf8"
 );
 const chunkTemplate = fs.readFileSync(
@@ -32,10 +32,13 @@ class Compilation {
     this.outputFileSystem = compiler.outputFileSystem;
     this.entries = []; //入口模块数组，放着所有的入口模块
     this.modules = []; //模块数组，放着所有模块
+    this._modules = {}; //key是模块id，值是模块对象
     this.chunks = []; //所有代码块
     this.files = []; //本次编译所有产出的文件名
     this.assets = {}; //生成资源 key为文件名
-
+    this.vendors = []; //所有第三方模块isarray
+    this.commons = []; // 这里放着同时被多个代码块加载的模块 title.js
+    this.commonsCountMap = {}; //每个模块被代码块引用次数,如果大于等于2就分离到commons里
     this.hooks = {
       succeedModule: new SyncHook(["module"]),
       seal: new SyncHook(),
@@ -70,7 +73,10 @@ class Compilation {
     const module = normalModuleFactory.create(data);
 
     addEntry && addEntry(module);
+    // if (!this._modules[module.moduleId]) {
     this.modules.push(module);
+    this._modules[module.moduleId] = module;
+    // }
 
     const afterBuild = (err, module) => {
       if (module.dependencies.length > 0) {
@@ -120,6 +126,38 @@ class Compilation {
     this.hooks.seal.call();
     this.hooks.beforeChunks.call();
 
+    for (const module of this.modules) {
+      //第三方模块
+      if (/node_modules/.test(module.moduleId)) {
+        module.name = "vendors";
+        if (this.vendors.indexOf(module) === -1) {
+          this.vendors.push(module);
+        }
+      } else {
+        if (this.commonsCountMap[module.moduleId]) {
+          this.commonsCountMap[module.moduleId].count++;
+        } else {
+          //如果是第一次加载该模块，就在commonsCountMap中设置初始值
+          this.commonsCountMap[module.moduleId] = { count: 1, module };
+        }
+      }
+    }
+    for (const moduleId in this.commonsCountMap) {
+      const { module, count } = this.commonsCountMap[moduleId];
+      if (count >= 2) {
+        module.name = "commons";
+        this.commons.push(module);
+      }
+    }
+
+    const deferredModules = [...this.vendors, ...this.commons].map(
+      (module) => module.moduleId
+    );
+
+    this.modules = this.modules.filter(
+      (module) => !deferredModules.includes(module.moduleId)
+    );
+
     //一般一个入口一个代码块
     for (const entryModule of this.entries) {
       const chunk = new Chunk(entryModule);
@@ -129,10 +167,26 @@ class Compilation {
       );
     }
 
+    if (this.vendors.length > 0) {
+      const chunk = new Chunk(this.vendors[0]);
+      chunk.async = true;
+      this.chunks.push(chunk);
+      chunk.modules = this.vendors;
+    }
+
+    if (this.commons.length > 0) {
+      const chunk = new Chunk(this.commons[0]);
+      chunk.async = true;
+
+      this.chunks.push(chunk);
+      chunk.modules = this.commons;
+    }
+
     this.hooks.afterChunks.call(this.chunks);
     this.createChunkAssets();
     callback();
   }
+
   createChunkAssets() {
     for (let i = 0; i < this.chunks.length; i++) {
       const chunk = this.chunks[i];
@@ -145,8 +199,13 @@ class Compilation {
           modules: chunk.modules,
         });
       } else {
+        const deferredChunks = [];
+        if (this.vendors.length > 0) deferredChunks.push("vendors");
+        if (this.commons.length > 0) deferredChunks.push("commons");
+
         source = mainRender({
           entryModuleId: chunk.entryModule.moduleId,
+          deferredChunks,
           modules: chunk.modules,
         });
       }
